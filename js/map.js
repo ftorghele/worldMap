@@ -13,16 +13,12 @@ var appConfig  = {
 	NEAR : 0.1, 
 	FAR : 10000,
 	CAMERA_X : 0,
-	CAMERA_Y : 1000,
+	CAMERA_Y : 2000,
 	CAMERA_Z : 200
 }
 		  
   
 var geons = {};
-var scene;
-var renderer;
-var camera;
-		  
 geons.geoConfig = function() {
 	this.TRANSLATE_0 = appConfig.TRANSLATE_0;
 	this.TRANSLATE_1 = appConfig.TRANSLATE_1;
@@ -40,23 +36,44 @@ geons.geoConfig = function() {
 		this.mercator.scale(this.SCALE);
 	}
 }
-  
-// geoConfig contains the configuration for the geo functions
+
 geo = new geons.geoConfig();
 geo.setupGeo();
-//var translate = geo.mercator.translate();
-jQuery.getJSON('json/countries.json', function(data, textStatus, jqXHR) {
-initScene();
-addGeoObject();
-renderer.render( scene, camera );
 
-function initScene() {
+
+var scene, renderer,
+camera, controls, mesh;
+
+var mouseX = 0, mouseY = 0;
+
+var windowHalfX = window.innerWidth / 2;
+var windowHalfY = window.innerHeight / 2;
+
+
+if( !init() )	animate();
+
+// init the scene
+function init(){
+
+	if( Detector.webgl ){
+		renderer = new THREE.WebGLRenderer({
+			antialias		: true,	// to get smoother output
+			preserveDrawingBuffer	: true	// to allow screenshot
+		});
+		renderer.setClearColorHex( 0xBBBBBB, 1 );
+	}else{
+		renderer	= new THREE.CanvasRenderer();
+	}
 	
-	// create a WebGL renderer, camera, and a scene
-	renderer = new THREE.WebGLRenderer({antialias:true});
+	renderer.setSize( appConfig.WIDTH, appConfig.HEIGHT );
+	$("#container").append(renderer.domElement);
+
+	// create a scene
+	scene = new THREE.Scene();
+
+	// put a camera in the scene
 	camera = new THREE.PerspectiveCamera(appConfig.VIEW_ANGLE, appConfig.ASPECT, 
 									   appConfig.NEAR, appConfig.FAR);
-	scene = new THREE.Scene();
 	
 	// add and position the camera at a fixed position
 	scene.add(camera);
@@ -64,13 +81,9 @@ function initScene() {
 	camera.position.y = appConfig.CAMERA_Y;
 	camera.position.z = appConfig.CAMERA_Z;
 	camera.lookAt( scene.position );
-	
-	// start the renderer, and black background
-	renderer.setSize(appConfig.WIDTH, appConfig.HEIGHT);
-	renderer.setClearColor(0x000);
-	
-	// add the render target to the page
-	$("#container").append(renderer.domElement);
+
+	// transparently support window resize
+	THREEx.WindowResize.bind(renderer, camera);
 	
 	// add a light at a specific position
 	var pointLight = new THREE.PointLight(0xFFFFFF);
@@ -81,16 +94,52 @@ function initScene() {
 	
 	// add a base plane on which we'll render our map
 	var planeGeo = new THREE.PlaneGeometry(10000, 10000, 10, 10);
-	var planeMat = new THREE.MeshLambertMaterial({color: 0x666699});
+	var planeMat = new THREE.MeshLambertMaterial({color: 0xFFFFFF});
 	var plane = new THREE.Mesh(planeGeo, planeMat);
 	
 	// rotate it to correct position
 	plane.rotation.x = -Math.PI/2;
 	scene.add(plane);	
+	
+	addGeoObject();
+	
+	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 }
-  
+
+function onDocumentMouseMove( event ) {
+
+	mouseX = ( event.clientX - windowHalfX );
+	mouseY = ( event.clientY - windowHalfY );
+
+}
+
+// animation loop
+function animate() {
+
+	// loop on request animation loop
+	// - it has to be at the begining of the function
+	// - see details at http://my.opera.com/emoller/blog/2011/12/20/requestanimationframe-for-smart-er-animating
+	requestAnimationFrame( animate );
+
+	// do the render
+	render();
+}
+
+// render the scene
+function render() {
+	
+	camera.position.x += ( mouseX - camera.position.x ) * 0.05;
+	camera.position.y += ( - mouseY - camera.position.y ) * 0.05;
+	camera.lookAt( scene.position );
+
+	// actually render the scene
+	renderer.render( scene, camera );
+}
+
+ 
 // add the loaded gis object (in geojson format) to the map
 function addGeoObject() {
+	jQuery.getJSON('json/countries.json', function(data, textStatus, jqXHR) {
 	
 		// keep track of rendered objects
 		var meshes = [];
@@ -132,7 +181,7 @@ function addGeoObject() {
 			scene.add(toAdd);
 			console.log("added");
 		}
-	
+	});
 }
   
 // simple gradient function
@@ -146,5 +195,3 @@ function gradient(length, maxLength) {
 	var rgb = b | (g << 8) | (r << 16);
 	return rgb;
 }
-
-});
