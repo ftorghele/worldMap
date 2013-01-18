@@ -3,18 +3,18 @@ var appConfig  = {
 	// d3
 	TRANSLATE_0 : 500,
 	TRANSLATE_1 : 0,
-	SCALE : 250,
+	SCALE : 200,
   	// three.js
 	WIDTH : window.innerWidth, 
-	HEIGHT : window.innerHeight,  
+	HEIGHT : window.innerHeight ,  
 	// three.js Camera
 	VIEW_ANGLE : 45, 
 	ASPECT : window.innerWidth / window.innerHeight, 
 	NEAR : 0.1, 
 	FAR : 10000,
 	CAMERA_X : 0,
-	CAMERA_Y : 2000,
-	CAMERA_Z : 200
+	CAMERA_Y : 1000,
+	CAMERA_Z : 500
 }
 		  
   
@@ -66,7 +66,7 @@ function init(){
 	}
 	
 	renderer.setSize( appConfig.WIDTH, appConfig.HEIGHT );
-	$("#container").append(renderer.domElement);
+	$("#worldmap").append(renderer.domElement);
 
 	// create a scene
 	scene = new THREE.Scene();
@@ -88,12 +88,13 @@ function init(){
 	// add a light at a specific position
 	var pointLight = new THREE.PointLight(0xFFFFFF);
 	scene.add(pointLight);
-	pointLight.position.x = 1500;
-	pointLight.position.y = 1500;
-	pointLight.position.z = 1500;
+	pointLight.position.x = 1000;
+	pointLight.position.y = 3000;
+	pointLight.position.z = -1000;
+	pointLight.intensity = 1.0;
 	
 	// add a base plane on which we'll render our map
-	var planeGeo = new THREE.PlaneGeometry(10000, 10000, 10, 10);
+	var planeGeo = new THREE.CubeGeometry(1400, 700, 30);
 	var planeMat = new THREE.MeshLambertMaterial({color: 0xFFFFFF});
 	var plane = new THREE.Mesh(planeGeo, planeMat);
 	
@@ -102,7 +103,7 @@ function init(){
 	scene.add(plane);	
 	
 	addGeoObject();
-	
+
 	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 }
 
@@ -128,9 +129,9 @@ function animate() {
 // render the scene
 function render() {
 	
-	camera.position.x += ( mouseX - camera.position.x ) * 0.05;
-	camera.position.y += ( - mouseY - camera.position.y ) * 0.05;
-	camera.lookAt( scene.position );
+	//camera.position.z = ( mouseY + windowHalfY*2  );
+	//camera.position.x = (  mouseX  );
+	//camera.lookAt( scene.position );
 
 	// actually render the scene
 	renderer.render( scene, camera );
@@ -139,34 +140,52 @@ function render() {
  
 // add the loaded gis object (in geojson format) to the map
 function addGeoObject() {
-	jQuery.getJSON('json/countries.json', function(data, textStatus, jqXHR) {
+	// get data
+	jQuery.getJSON('data/countries.json', function(data, textStatus, jqXHR) {
 	
-		// keep track of rendered objects
-		var meshes = [];
+		var countries = [];
 		var i, j;
-		// convert to mesh and calculate values
+		
+		// convert to threejs meshes
 		for (i = 0 ; i < data.features.length ; i++) {
-			var geoFeature = data.features[i]
+			var geoFeature = data.features[i];
+			var properties = geoFeature.properties;
 			var feature = geo.path(geoFeature);
+			
 			// we only need to convert it to a three.js path
 			var mesh = transformSVGPathExposed(feature);
+			
 			// add to array
 			for (j = 0 ; j < mesh.length ; j++) {
-				  meshes.push(mesh[j]);
+				  countries.push({"data": properties, "mesh": mesh[j]});
 			}
 		}
 		
-		// we've got our paths now extrude them to a height and add a color
-		for (i = 0 ; i < meshes.length ; i++) {
+		var countryColors = { 	"0": 0xffcfcf,
+								"1": 0xfeadad,  
+								"2": 0xfe8e8e, 
+								"3": 0xfd6b6b, 
+								"4": 0xff0000 } 
 		
+		// extrude paths and add color
+		for (i = 0 ; i < countries.length ; i++) {
+			
+			
+			
 			// create material color based on average
-			var mathColor = gradient(Math.round(Math.ceil(Math.random() * 255)),255);
 			var material = new THREE.MeshLambertMaterial({
-				color: mathColor
+				color: countryColors[i%4],
 			});
 			
+			var material = new THREE.MeshPhongMaterial({color:countryColors[i%4],  
+                                                   opacity:0.5}); 
+
+			
+			// TEMP EXTRUSION
+			var extrusion = 1;
+			
 			// create extrude based on total
-			var shape3d = meshes[i].extrude({amount: Math.round(10), bevelEnabled: false});
+			var shape3d = countries[i].mesh.extrude({amount: extrusion, bevelEnabled: false});
 			
 			// create a mesh based on material and extruded shape
 			var toAdd = new THREE.Mesh(shape3d, material);
@@ -175,23 +194,12 @@ function addGeoObject() {
 			toAdd.rotation.x = Math.PI/2;
 			toAdd.translateX(-490);
 			toAdd.translateZ(50);
-			toAdd.translateY(10/2);
+			toAdd.translateY(17);
+			
+
 			
 			// add to scene
 			scene.add(toAdd);
-			console.log("added");
 		}
 	});
-}
-  
-// simple gradient function
-function gradient(length, maxLength) {
-
-	var i = (length * 255 / maxLength);
-	var r = i;
-	var g = 255-(i);
-	var b = 0;
-	
-	var rgb = b | (g << 8) | (r << 16);
-	return rgb;
 }
