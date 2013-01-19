@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Demographic Development</title>
+    <title>Worldmap</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- styles -->
@@ -23,7 +23,7 @@
     <div class="navbar navbar-fixed-top">
       <div class="navbar-inner">
         <div class="container">
-          <a class="brand" href="./">Population</a>
+          <a class="brand" href="./">Worldmap</a>
             <ul class="nav">
               <li class="">
                 <a href="#africa"><i class="icon-zoom-in"></i> Africa</a>
@@ -64,9 +64,7 @@
       	<div class="navbar-inner">
           <div class="container">
             <ul class="nav">
-              <li class="navbar-text">choose a year: </li>
-              <div id="slider"></div>
-              <li class="navbar-text" id="current-year"></li>
+              <li id="country-name"></li>
             </ul>
           </div>
         </div>
@@ -80,7 +78,6 @@
     <!-- Placed at the end of the document so the pages load faster -->
     
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.1/jquery-ui.min.js"></script>
     
     <script src="vendor/d3.min.js"></script>
     <script src="vendor/three.min.js"></script>

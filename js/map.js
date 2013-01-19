@@ -29,7 +29,7 @@ $(function(){
 		this.camera = {};
 		this.stage = {};
 		
-		this.INTERSECTED;
+		this.INTERSECTED = null;
 	}
 	
 	Map.prototype = {
@@ -95,9 +95,9 @@ $(function(){
 		
 		add_light: function() {
 			var pointLight = new THREE.PointLight(0xFFFFFF);
-			pointLight.position.x = 1000;
+			pointLight.position.x = 0;
 			pointLight.position.y = 3000;
-			pointLight.position.z = -1000;
+			pointLight.position.z = 0;
 			pointLight.intensity = 1.0;
 			this.scene.add(pointLight);
 		},
@@ -105,7 +105,7 @@ $(function(){
 		add_plain: function() {
 			// add a base plane on which we'll render our map
 			var planeGeo = new THREE.CubeGeometry(1400, 700, 30);
-			var planeMat = new THREE.MeshLambertMaterial({color: 0xFFFFFF});
+			var planeMat = new THREE.MeshLambertMaterial({color: 0xeeeeee});
 			var plane = new THREE.Mesh(planeGeo, planeMat);
 			
 			// rotate it to correct position
@@ -133,30 +133,27 @@ $(function(){
 					}
 				}
 				
-				var countryColors = { 	"0": 0xffcfcf,
-										"1": 0xfeadad,  
-										"2": 0xfe8e8e, 
-										"3": 0xfd6b6b, 
-										"4": 0xff0000 } 
-				
 				// extrude paths and add color
 				for (i = 0 ; i < countries.length ; i++) {
 		
 					// create material color based on average		
-					var material = new THREE.MeshPhongMaterial({color:countryColors[i%4], opacity:0.5}); 
-		
-					
-					// TEMP EXTRUSION
-					var extrusion = 1;
-					
-					// create extrude based on total
-					var shape3d = countries[i].mesh.extrude({amount: extrusion, bevelEnabled: false});
+					var material = new THREE.MeshPhongMaterial({
+						color: this.getCountryColor(countries[i].data), 
+						opacity:0.5
+					}); 
+							
+					// extrude mesh
+					var shape3d = countries[i].mesh.extrude({
+						amount: 1, 
+						bevelEnabled: false
+					});
 
 					// create a mesh based on material and extruded shape
 					var toAdd = new THREE.Mesh(shape3d, material);
 					
 					//set name of mesh
 					toAdd.name = countries[i].data.name;
+					
 					// rotate and position the elements nicely in the center
 					toAdd.rotation.x = Math.PI/2;
 					toAdd.translateX(-490);
@@ -166,7 +163,17 @@ $(function(){
 					// add to scene
 					this.scene.add(toAdd);
 				}
-
+		},
+		
+		getCountryColor: function(data) {
+			var multiplier = 0;
+		
+			for(i = 0; i < 3; i++) {
+				multiplier += data.iso_a3.charCodeAt(i);
+			}
+			
+			multiplier = (1.0/366)*multiplier;
+			return multiplier*0xffffff;
 		},
 		
 		setCameraPosition: function(x, y, z, lx, lz) {	
@@ -209,20 +216,34 @@ $(function(){
 			var raycaster = new THREE.Ray( this.camera.position, vector.subSelf( this.camera.position ).normalize() );
 			var intersects = raycaster.intersectObjects( this.scene.children );
 
+			var objects = this.scene.children;
+
 			if ( intersects.length > 1 ) {						
 				if(this.INTERSECTED != intersects[ 0 ].object) {
 					if (this.INTERSECTED) {
-					this.INTERSECTED.material.opacity = 0.5;
-					this.INTERSECTED = null;
+						for(i = 0; i < objects.length; i++) {
+							if (objects[i].name == this.INTERSECTED.name) {
+								objects[i].material.opacity = 0.5;
+							}
+						}
+						this.INTERSECTED = null;
 					}
 				}
 
 				this.INTERSECTED = intersects[ 0 ].object;
-				this.INTERSECTED.material.opacity = 1.0;
+				for(i = 0; i < objects.length; i++) {
+					if (objects[i].name == this.INTERSECTED.name) {
+						objects[i].material.opacity = 1.0;
+					}
+				}
 
 			} else if (this.INTERSECTED) {
-					this.INTERSECTED.material.opacity = 0.5;
-					this.INTERSECTED = null;
+				for(i = 0; i < objects.length; i++) {
+					if (objects[i].name == this.INTERSECTED.name) {
+						objects[i].material.opacity = 0.5;
+					}
+				}
+				this.INTERSECTED = null;
 			} 
 
 			// actually render the scene
@@ -232,10 +253,7 @@ $(function(){
 
 	function init() {
 		
-		$.when(	$.getJSON("data/countries.json"),
-				$.getJSON("data/worldpopfemale.json"),
-				$.getJSON("data/worldpopmale.json"),
-				$.getJSON("data/worldpoptotal.json") ).then(function(countries, popFemale, popMale, popTotal){ 
+		$.when(	$.getJSON("data/countries.json") ).then(function(data){ 
 			
 			worldMap = new Map();
 			
@@ -245,13 +263,20 @@ $(function(){
 			worldMap.add_light();
 			worldMap.add_plain();
 			
-			worldMap.add_countries(countries[0]);
+			worldMap.add_countries(data);
 			
 			// request animation frame
 			var onFrame = window.requestAnimationFrame;
 	
 			function tick(timestamp) {
 				worldMap.animate();
+				
+				if(worldMap.INTERSECTED) {
+					$('#country-name').html(worldMap.INTERSECTED.name);
+				} else {
+					$('#country-name').html("move mouse over map");
+				}
+				
 				onFrame(tick);
 			}
 	
@@ -261,8 +286,6 @@ $(function(){
 			
 		});
 	}
-
-	window.onload = init;
 	
 	function onDocumentMouseMove( event ) {
 
@@ -270,7 +293,6 @@ $(function(){
 
 		mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 		mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
 	}
 
 	$('.navbar-fixed-top ul li a').click(function() {		
@@ -299,18 +321,6 @@ $(function(){
 		}
 	});
 	
-	$( "#slider" ).slider({
-        orientation: "horizontal",
-        range: "min",
-        min: 2010,
-        max: 2050,
-		step: 10,
-        value: 2030,
-        slide: function (event, ui) {
-            var currentYear = "current year: " + ui.value;
-            $("#current-year").html(currentYear);
-        }
-    });
-    $("#current-year").html("current year: 2030");
-	
+	window.onload = init;
+		
 }());
