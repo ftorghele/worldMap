@@ -1,6 +1,7 @@
 $(function(){
 	
 	var worldMap;
+	var mouse = { x: 0, y: 0 }
 	
 	function Map() {
 
@@ -24,8 +25,11 @@ $(function(){
 		this.geo;
 		this.scene = {};
 		this.renderer = {};
+		this.projector = {};
 		this.camera = {};
 		this.stage = {};
+		
+		this.INTERSECTED;
 	}
 	
 	Map.prototype = {
@@ -62,11 +66,13 @@ $(function(){
 					antialias : true
 				});
 				this.renderer.setClearColorHex( 0xBBBBBB, 1 );
-			}else{
+			} else {
 				this.renderer = new THREE.CanvasRenderer();
 			}
 			
 			this.renderer.setSize( this.WIDTH, this.HEIGHT );
+			
+			this.projector = new THREE.Projector();
 			
 			// append renderer to dom element
 			$("#worldmap").append(this.renderer.domElement);
@@ -136,11 +142,7 @@ $(function(){
 				// extrude paths and add color
 				for (i = 0 ; i < countries.length ; i++) {
 		
-					// create material color based on average
-					var material = new THREE.MeshLambertMaterial({
-						color: countryColors[i%4],
-					});
-					
+					// create material color based on average		
 					var material = new THREE.MeshPhongMaterial({color:countryColors[i%4], opacity:0.5}); 
 		
 					
@@ -149,15 +151,17 @@ $(function(){
 					
 					// create extrude based on total
 					var shape3d = countries[i].mesh.extrude({amount: extrusion, bevelEnabled: false});
-					
+
 					// create a mesh based on material and extruded shape
 					var toAdd = new THREE.Mesh(shape3d, material);
 					
+					//set name of mesh
+					toAdd.name = countries[i].data.name;
 					// rotate and position the elements nicely in the center
 					toAdd.rotation.x = Math.PI/2;
 					toAdd.translateX(-490);
 					toAdd.translateZ(50);
-					toAdd.translateY(17);
+					toAdd.translateY(20);
 
 					// add to scene
 					this.scene.add(toAdd);
@@ -187,7 +191,7 @@ $(function(){
 		},
 		
 		animate: function() {
-			
+					
 			if( this.CAMERA_X != this.camera.position.x || 
 				this.CAMERA_Y != this.camera.position.y || 
 				this.CAMERA_Z != this.camera.position.z) {
@@ -198,14 +202,33 @@ $(function(){
 		},
 		
 		render: function() {
+			
+			// find intersections
+			var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
+			this.projector.unprojectVector( vector, this.camera );
+			var raycaster = new THREE.Ray( this.camera.position, vector.subSelf( this.camera.position ).normalize() );
+			var intersects = raycaster.intersectObjects( this.scene.children );
+
+			if ( intersects.length > 1 ) {						
+				if(this.INTERSECTED != intersects[ 0 ].object) {
+					if (this.INTERSECTED) {
+					this.INTERSECTED.material.opacity = 0.5;
+					this.INTERSECTED = null;
+					}
+				}
+
+				this.INTERSECTED = intersects[ 0 ].object;
+				this.INTERSECTED.material.opacity = 1.0;
+
+			} else if (this.INTERSECTED) {
+					this.INTERSECTED.material.opacity = 0.5;
+					this.INTERSECTED = null;
+			} 
 
 			// actually render the scene
 			this.renderer.render(this.scene, this.camera);
 		}
 	};
-	
-
-	
 
 	function init() {
 		
@@ -234,11 +257,22 @@ $(function(){
 	
 			onFrame(tick);
 			
+			document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+			
 		});
 	}
 
 	window.onload = init;
 	
+	function onDocumentMouseMove( event ) {
+
+		event.preventDefault();
+
+		mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+		mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+	}
+
 	$('.navbar-fixed-top ul li a').click(function() {		
 		switch (this.hash) {
 		   case "#africa":
@@ -278,5 +312,5 @@ $(function(){
         }
     });
     $("#current-year").html("current year: 2030");
-
+	
 }());
