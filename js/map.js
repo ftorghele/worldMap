@@ -4,10 +4,6 @@ $(function(){
 	var mouse = { x: 0, y: 0 }
 	
 	function Map() {
-
-		this.TRANSLATE_0 = 500;
-		this.TRANSLATE_1 = 0;
-		this.SCALE       = 200;
 		
 		this.WIDTH       = window.innerWidth; 
 		this.HEIGHT      = window.innerHeight;  
@@ -35,28 +31,21 @@ $(function(){
 	Map.prototype = {
 		
 		init_d3: function() {
-			var geons = {};
-		
-			geons.geoConfig = function() {
-				this.TRANSLATE_0 = 500;
-				this.TRANSLATE_1 = 0;
-				this.SCALE = 200;
+
+			geoConfig = function() {
 				
 				this.mercator = d3.geo.equirectangular();
 				this.path = d3.geo.path().projection(this.mercator);
 				
-				this.setupGeo = function() {
-					var translate = this.mercator.translate();
-					translate[0] = this.TRANSLATE_0;
-					translate[1] = this.TRANSLATE_1;
-					
-					this.mercator.translate(translate);
-					this.mercator.scale(this.SCALE);
-				}
+				var translate = this.mercator.translate();
+				translate[0] = 500;
+				translate[1] = 0;
+				
+				this.mercator.translate(translate);
+				this.mercator.scale(200);
 			}
 	
-			this.geo = new geons.geoConfig();
-			this.geo.setupGeo();
+			this.geo = new geoConfig();
 		},
 		
 		init_tree: function() {
@@ -220,6 +209,7 @@ $(function(){
 						for(i = 0; i < objects.length; i++) {
 							if (objects[i].name == this.INTERSECTED.name) {
 								objects[i].material.opacity = 0.5;
+								objects[i].scale.z = 1;
 							}
 						}
 						this.INTERSECTED = null;
@@ -230,6 +220,7 @@ $(function(){
 				for(i = 0; i < objects.length; i++) {
 					if (objects[i].name == this.INTERSECTED.name) {
 						objects[i].material.opacity = 1.0;
+						objects[i].scale.z = 5;
 					}
 				}
 
@@ -237,6 +228,7 @@ $(function(){
 				for(i = 0; i < objects.length; i++) {
 					if (objects[i].name == this.INTERSECTED.name) {
 						objects[i].material.opacity = 0.5;
+						objects[i].scale.z = 1;
 					}
 				}
 				this.INTERSECTED = null;
