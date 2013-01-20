@@ -170,10 +170,10 @@ $(function(){
 		},
 		
 		moveCamera: function() {
-			var easing = 0.2;
-			var target_x = (this.CAMERA_X - this.camera.position.x) * easing;
-			var target_y = (this.CAMERA_Y - this.camera.position.y) * easing;
-			var target_z = (this.CAMERA_Z - this.camera.position.z) * easing;
+			var speed = 0.2;
+			var target_x = (this.CAMERA_X - this.camera.position.x) * speed;
+			var target_y = (this.CAMERA_Y - this.camera.position.y) * speed;
+			var target_z = (this.CAMERA_Z - this.camera.position.z) * speed;
 			
 			this.camera.position.x += target_x;
 			this.camera.position.y += target_y;
@@ -189,11 +189,6 @@ $(function(){
 				this.CAMERA_Z != this.camera.position.z) {
 				this.moveCamera();	
 			}
-
-			this.render();
-		},
-		
-		render: function() {
 			
 			// find intersections
 			var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
@@ -233,6 +228,11 @@ $(function(){
 				}
 				this.INTERSECTED = null;
 			} 
+
+			this.render();
+		},
+		
+		render: function() {
 
 			// actually render the scene
 			this.renderer.render(this.scene, this.camera);

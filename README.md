@@ -161,3 +161,106 @@ getCountryColor: function(data) {
 }
 ```
 In `getCountryColor` I add up the results of `charCodeAt` for each char in an iso_a3 country code. Then I normalize the result and multiply it to `0xFFFFFF` which results in (mostly) different colours for each country.
+
+### Camera animations
+First there we check in `animate()` if the camera is on the right position. If not the method `moveCamera()` is called as long as necessary:
+
+```
+moveCamera: function() {
+    var speed = 0.2;
+    var target_x = (this.CAMERA_X - this.camera.position.x) * speed;
+    var target_y = (this.CAMERA_Y - this.camera.position.y) * speed;
+    var target_z = (this.CAMERA_Z - this.camera.position.z) * speed;
+    
+    this.camera.position.x += target_x;
+    this.camera.position.y += target_y;
+    this.camera.position.z += target_z;
+    
+    this.camera.lookAt( {x: this.CAMERA_LX, y: 0, z: this.CAMERA_LZ } );
+}
+```
+In `moveCamera` we move the camera to the new position with a certain speed and let it lock at the given coordinates.
+
+### Raycasting (hovering countries)
+
+```
+var vector = new THREE.Vector3( mouse.x, mouse.y, 1 );
+this.projector.unprojectVector( vector, this.camera );
+var raycaster = new THREE.Ray( this.camera.position, vector.subSelf( this.camera.position ).normalize() );
+
+var intersects = raycaster.intersectObjects( this.scene.children );
+var objects = this.scene.children;
+
+if ( intersects.length > 1 ) {						
+    if(this.INTERSECTED != intersects[ 0 ].object) {
+        if (this.INTERSECTED) {
+            for(i = 0; i < objects.length; i++) {
+                if (objects[i].name == this.INTERSECTED.name) {
+                    objects[i].material.opacity = 0.5;
+                    objects[i].scale.z = 1;
+                }
+            }
+            this.INTERSECTED = null;
+        }
+    }
+
+    this.INTERSECTED = intersects[ 0 ].object;
+    for(i = 0; i < objects.length; i++) {
+        if (objects[i].name == this.INTERSECTED.name) {
+            objects[i].material.opacity = 1.0;
+            objects[i].scale.z = 5;
+        }
+    }
+}
+```
+The above code is part of the `animate()` function. First we need a new `THREE.Vector3` with the current mouse position. Next we need `unprojectVector()` to convert (x,y) mouse coordinates in the browser to the (x,y,z) coordinates in THREE.js canvas space.
+
+Now we can create a new `THREE.Ray` which goes through the current position of our camera and our vector. With `intersectObjects()` we get all objects which intersect with our ray. These are the objects which are at the current position of our cursor. Now we can simply animate them by setting the opacity to 1 and scale them a little bit up. All other objects should be reversed to their original state.
+
+### Finally: the init function which glues all together
+
+```
+function init() {
+		
+    $.when(	$.getJSON("data/countries.json") ).then(function(data){ 
+        
+        worldMap = new Map();
+        
+        worldMap.init_d3();
+        worldMap.init_tree();
+        
+        worldMap.add_light(0, 3000, 0, 1.0, 0xFFFFFF);		
+        worldMap.add_plain(1400, 700, 30, 0xEEEEEE);
+        
+        worldMap.add_countries(data);
+        
+        // request animation frame
+        var onFrame = window.requestAnimationFrame;
+    
+        function tick(timestamp) {
+            worldMap.animate();
+            
+            if(worldMap.INTERSECTED) {
+                $('#country-name').html(worldMap.INTERSECTED.name);
+            } else {
+                $('#country-name').html("move mouse over map");
+            }
+            
+            onFrame(tick);
+        }
+    
+        onFrame(tick);
+        
+        document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+        window.addEventListener( 'resize', onWindowResize, false );
+        
+    });
+}
+```
+In `init` I first load the geoJSON data. After that I create a new Map opject and call all the above methods on it.
+
+I use `requestAnimationFrame` to loop the `animate()` method and write the name of the current country to DOM. One big advantage of requestAnimationFrame is that if you're running the animation loop in a tab that's not visible, the browser won't keep it running.
+
+## Summary
+
+It was fun and I learned a lot ;)
