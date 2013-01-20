@@ -87,25 +87,21 @@ $(function(){
 			this.camera.position.z = this.CAMERA_Z;
 			this.camera.lookAt( { x: this.CAMERA_LX, y: 0, z: this.CAMERA_LZ} );
 			this.scene.add(this.camera);
-			
-			// transparently support window resize
-			THREEx.WindowResize.bind(this.renderer, this.camera);
 		},
 		
 		
-		add_light: function() {
-			var pointLight = new THREE.PointLight(0xFFFFFF);
-			pointLight.position.x = 0;
-			pointLight.position.y = 3000;
-			pointLight.position.z = 0;
-			pointLight.intensity = 1.0;
+		add_light: function(x, y, z, intensity, color) {
+			var pointLight = new THREE.PointLight(color);
+			pointLight.position.x = x;
+			pointLight.position.y = y;
+			pointLight.position.z = z;
+			pointLight.intensity = intensity;
 			this.scene.add(pointLight);
 		},
 		
-		add_plain: function() {
-			// add a base plane on which we'll render our map
-			var planeGeo = new THREE.CubeGeometry(1400, 700, 30);
-			var planeMat = new THREE.MeshLambertMaterial({color: 0xeeeeee});
+		add_plain: function(x, y, z, color) {
+			var planeGeo = new THREE.CubeGeometry(x, y, z);
+			var planeMat = new THREE.MeshLambertMaterial({color: color});
 			var plane = new THREE.Mesh(planeGeo, planeMat);
 			
 			// rotate it to correct position
@@ -154,7 +150,7 @@ $(function(){
 					//set name of mesh
 					toAdd.name = countries[i].data.name;
 					
-					// rotate and position the elements nicely in the center
+					// rotate and position the elements
 					toAdd.rotation.x = Math.PI/2;
 					toAdd.translateX(-490);
 					toAdd.translateZ(50);
@@ -260,8 +256,8 @@ $(function(){
 			worldMap.init_d3();
 			worldMap.init_tree();
 			
-			worldMap.add_light();
-			worldMap.add_plain();
+			worldMap.add_light(0, 3000, 0, 1.0, 0xFFFFFF);		
+			worldMap.add_plain(1400, 700, 30, 0xEEEEEE);
 			
 			worldMap.add_countries(data);
 			
@@ -283,6 +279,7 @@ $(function(){
 			onFrame(tick);
 			
 			document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+			window.addEventListener( 'resize', onWindowResize, false );
 			
 		});
 	}
@@ -293,6 +290,17 @@ $(function(){
 
 		mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 		mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+	}
+	
+	function onWindowResize() {
+		
+		windowHalfX = window.innerWidth / 2;
+		windowHalfY = window.innerHeight / 2;
+
+		worldMap.camera.aspect = window.innerWidth / window.innerHeight;
+		worldMap.camera.updateProjectionMatrix();
+
+		worldMap.renderer.setSize( window.innerWidth, window.innerHeight );
 	}
 
 	$('.navbar-fixed-top ul li a').click(function() {		
