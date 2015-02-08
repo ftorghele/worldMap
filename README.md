@@ -7,7 +7,7 @@ WorldMap was a small Project I have done for „Clientside Web Engineering“ at
 These paths are later transformed to [THREE.js](http://mrdoob.github.com/three.js/) Meshes and rendered in 3d space. You can zoom in to continents and hover over countries to see their name on the bottom. 
 
 ### Demo
-For a live preview, see <http://oi.qoop.io/fhs/clientside>
+For a live preview, see <http://torghele.at/worldmap/>
 
 ## How it was done
 
